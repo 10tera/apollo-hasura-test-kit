@@ -1,0 +1,11 @@
+query getUsers($usersWhere: users_bool_exp) {
+  users(where: $usersWhere) {
+    name
+    is_active
+    user_id
+    version
+    posts {
+      post_id
+    }
+  }
+}
