@@ -1,6 +1,6 @@
 export const mockQueryResult = <
   TData,
-  TVariables extends { [k: string]: Where | number | undefined | null },
+  TVariables extends Record<string, Where | number | undefined | null>,
 >(
   data: TData,
   variables: TVariables,
@@ -32,7 +32,6 @@ export const mockQueryResult = <
         });
         console.log(filteredData);
       }
-      //console.log(variables[value.where]);
     }
     if (!isNullish(value.limit)) {
       console.log(variables[value.limit]);
@@ -46,12 +45,28 @@ type Where = {
   _and?: Where[] | null;
   _or?: Where[] | null;
   _not?: Where | null;
-} & {
-  [k: Exclude<string, '_and' | '_or' | '_not'>]: Where | Comparator | null;
+  [k: string]: Where[] | Where | Comparator | Aggregate | null | undefined;
 };
+
 type Comparator = {
-  _eq?: string | number | null;
-  _in?: string[] | number[] | null;
+  _eq?: string | number | boolean | null;
+  _in?: string[] | number[] | boolean[] | null;
+  [k: string]:
+    | string[]
+    | string
+    | number[]
+    | number
+    | boolean[]
+    | boolean
+    | null
+    | undefined;
+};
+
+/**
+ * For aggregate type
+ */
+type Aggregate = {
+  [k: string]: Where | Comparator | boolean | null | undefined | unknown;
 };
 
 const isComparator = (value: unknown): value is Comparator => {
@@ -68,6 +83,11 @@ const isStringArray = (value: unknown): value is string[] => {
 const isNumberArray = (value: unknown): value is number[] => {
   return Array.isArray(value) && value.every((v) => typeof v === 'number');
 };
+
+const isBooleanArray = (value: unknown): value is boolean[] => {
+  return Array.isArray(value) && value.every((v) => typeof v === 'boolean');
+};
+
 const isRecordStringUnknown = (
   value: unknown,
 ): value is Record<string, unknown> => {
@@ -79,29 +99,30 @@ const isRecordStringUnknown = (
   );
 };
 
-//TODO: ジェネリクスいらないかも
-const matchCondition = <TData extends Record<string, unknown>>(
+const matchCondition = (
   where: Where,
-  data: TData,
+  data: Record<string, unknown>,
 ): boolean => {
   let result = true;
   for (const [whereKey, whereCondition] of Object.entries(where)) {
     if (isNullish(whereCondition)) continue;
-    if (whereKey === '_and' && Array.isArray(whereCondition)) {
-      result = result && whereCondition.every((w) => matchCondition(w, data));
+    if (whereKey === '_and') {
+      if (Array.isArray(whereCondition)) {
+        result = result && whereCondition.every((w) => matchCondition(w, data));
+      }
       continue;
     }
-    if (whereKey === '_or' && Array.isArray(whereCondition)) {
-      result = result && whereCondition.some((w) => matchCondition(w, data));
+    if (whereKey === '_or') {
+      if (Array.isArray(whereCondition)) {
+        result = result && whereCondition.some((w) => matchCondition(w, data));
+      }
       continue;
     }
-    if (
-      whereKey === '_not' &&
-      !isNullish(whereCondition) &&
-      !Array.isArray(whereCondition) &&
-      !isComparator(whereCondition)
-    ) {
-      result = result && !matchCondition(whereCondition, data);
+    if (whereKey === '_not') {
+      if (!Array.isArray(whereCondition) && !isComparator(whereCondition)) {
+        //TODO: Aggregate Typeは未考慮
+        result = result && !matchCondition(whereCondition as Where, data);
+      }
       continue;
     }
     if (isComparator(whereCondition)) {
@@ -110,20 +131,18 @@ const matchCondition = <TData extends Record<string, unknown>>(
       }
       continue;
     }
-    const a = whereCondition;
 
+    //NOTE: _and,_or以外でWhere[]は来ない想定
+    if (Array.isArray(whereCondition)) {
+      continue;
+    }
     if (
-      !isNullish(whereCondition) &&
-      !Array.isArray(whereCondition) &&
-      Object.prototype.hasOwnProperty.call(data, whereKey)
+      Object.prototype.hasOwnProperty.call(data, whereKey) &&
+      isRecordStringUnknown(data[whereKey])
     ) {
-      if (Array.isArray(data[whereKey])) {
-        result =
-          result &&
-          data[whereKey].some((item) => matchCondition(whereCondition, item));
-      } else if (isRecordStringUnknown(data[whereKey])) {
-        result = result && matchCondition(whereCondition, data[whereKey]);
-      }
+      result =
+        //NOTE: Aggregate Typeは未考慮
+        result && matchCondition(whereCondition as Where, data[whereKey]);
     }
   }
   return result;
@@ -131,7 +150,6 @@ const matchCondition = <TData extends Record<string, unknown>>(
 
 const compareData = (condition: Comparator, data: unknown): boolean => {
   let result = true;
-  console.log(condition, data);
   if (condition._eq !== undefined) {
     result = result && data === condition._eq;
   }
@@ -139,6 +157,9 @@ const compareData = (condition: Comparator, data: unknown): boolean => {
     result = result && condition._in.includes(data);
   }
   if (isNumberArray(condition._in) && typeof data === 'number') {
+    result = result && condition._in.includes(data);
+  }
+  if (isBooleanArray(condition._in) && typeof data === 'boolean') {
     result = result && condition._in.includes(data);
   }
   return result;
