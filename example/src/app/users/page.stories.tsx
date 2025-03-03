@@ -27,7 +27,7 @@ const mock = {
         {
           name: 'user1',
           is_active: true,
-          user_id: 'user_1',
+          user_id: null,
           version: 1,
           posts: [
             {
