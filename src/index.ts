@@ -19,6 +19,7 @@ export const mockQueryResult = <
     };
   },
 ): TData => {
+  const result = structuredClone(data);
   for (const [key, value] of objectEntries(map)) {
     if (!isNullish(value.where)) {
       const whereValue = variables[value.where];
@@ -29,16 +30,17 @@ export const mockQueryResult = <
       ) {
         const filteredData = data[key].filter((item) => {
           return matchCondition(whereValue, item);
-        });
-        console.log(filteredData);
+          //TODO: fix type
+        }) as TData[keyof TData];
+        result[key] = filteredData;
       }
     }
     if (!isNullish(value.limit)) {
-      console.log(variables[value.limit]);
+      //console.log(variables[value.limit]);
     }
   }
 
-  return data;
+  return result;
 };
 
 type Where = {
@@ -51,6 +53,9 @@ type Where = {
 type Comparator = {
   _eq?: string | number | boolean | null;
   _in?: string[] | number[] | boolean[] | null;
+  _is_null?: boolean | null;
+  _regex?: string | null;
+  _neq?: string | number | boolean | null;
   [k: string]:
     | string[]
     | string
@@ -74,7 +79,14 @@ const isComparator = (value: unknown): value is Comparator => {
     return false;
   const keys = Object.keys(value);
   if (keys.length === 0) return false;
-  return keys.every((key) => key === '_eq' || key === '_in');
+  return keys.every(
+    (key) =>
+      key === '_eq' ||
+      key === '_in' ||
+      key === '_is_null' ||
+      key === '_regex' ||
+      key === '_neq',
+  );
 };
 const isStringArray = (value: unknown): value is string[] => {
   return Array.isArray(value) && value.every((v) => typeof v === 'string');
@@ -150,17 +162,50 @@ const matchCondition = (
 
 const compareData = (condition: Comparator, data: unknown): boolean => {
   let result = true;
+  /**
+   * _eq
+   */
   if (condition._eq !== undefined) {
     result = result && data === condition._eq;
   }
-  if (isStringArray(condition._in) && typeof data === 'string') {
-    result = result && condition._in.includes(data);
+  /**
+   * _neq
+   */
+  if (condition._neq !== undefined) {
+    result = result && (isNullish(data) ? false : data !== condition._neq);
   }
-  if (isNumberArray(condition._in) && typeof data === 'number') {
-    result = result && condition._in.includes(data);
+  /**
+   * _in
+   */
+  if (isStringArray(condition._in)) {
+    result =
+      result &&
+      (typeof data === 'string' ? condition._in.includes(data) : false);
   }
-  if (isBooleanArray(condition._in) && typeof data === 'boolean') {
-    result = result && condition._in.includes(data);
+  if (isNumberArray(condition._in)) {
+    result =
+      result &&
+      (typeof data === 'number' ? condition._in.includes(data) : false);
+  }
+  if (isBooleanArray(condition._in)) {
+    result =
+      result &&
+      (typeof data === 'boolean' ? condition._in.includes(data) : false);
+  }
+  /**
+   * _is_null
+   */
+  if (!isNullish(condition._is_null)) {
+    result =
+      result && (condition._is_null ? isNullish(data) : !isNullish(data));
+  }
+  /**
+   * _regex
+   */
+  if (!isNullish(condition._regex)) {
+    result =
+      result &&
+      (typeof data === 'string' ? !!data.match(condition._regex) : false);
   }
   return result;
 };
