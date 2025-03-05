@@ -14,6 +14,7 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  date: { input: any; output: any; }
   timestamptz: { input: any; output: any; }
   uuid: { input: any; output: any; }
 };
@@ -84,6 +85,19 @@ export enum Cursor_Ordering {
   /** descending ordering of the cursor */
   Desc = 'DESC'
 }
+
+/** Boolean expression to compare columns of type "date". All fields are combined with logical 'AND'. */
+export type Date_Comparison_Exp = {
+  _eq?: InputMaybe<Scalars['date']['input']>;
+  _gt?: InputMaybe<Scalars['date']['input']>;
+  _gte?: InputMaybe<Scalars['date']['input']>;
+  _in?: InputMaybe<Array<Scalars['date']['input']>>;
+  _is_null?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['date']['input']>;
+  _lte?: InputMaybe<Scalars['date']['input']>;
+  _neq?: InputMaybe<Scalars['date']['input']>;
+  _nin?: InputMaybe<Array<Scalars['date']['input']>>;
+};
 
 /** mutation root */
 export type Mutation_Root = {
@@ -584,6 +598,7 @@ export type Users = {
   posts: Array<Posts>;
   /** An aggregate relationship */
   posts_aggregate: Posts_Aggregate;
+  test_date?: Maybe<Scalars['date']['output']>;
   user_id: Scalars['uuid']['output'];
   version: Scalars['Int']['output'];
 };
@@ -655,6 +670,7 @@ export type Users_Bool_Exp = {
   name?: InputMaybe<String_Comparison_Exp>;
   posts?: InputMaybe<Posts_Bool_Exp>;
   posts_aggregate?: InputMaybe<Posts_Aggregate_Bool_Exp>;
+  test_date?: InputMaybe<Date_Comparison_Exp>;
   user_id?: InputMaybe<Uuid_Comparison_Exp>;
   version?: InputMaybe<Int_Comparison_Exp>;
 };
@@ -677,6 +693,7 @@ export type Users_Insert_Input = {
   is_active?: InputMaybe<Scalars['Boolean']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   posts?: InputMaybe<Posts_Arr_Rel_Insert_Input>;
+  test_date?: InputMaybe<Scalars['date']['input']>;
   user_id?: InputMaybe<Scalars['uuid']['input']>;
   version?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -687,6 +704,7 @@ export type Users_Max_Fields = {
   comment?: Maybe<Scalars['String']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   name?: Maybe<Scalars['String']['output']>;
+  test_date?: Maybe<Scalars['date']['output']>;
   user_id?: Maybe<Scalars['uuid']['output']>;
   version?: Maybe<Scalars['Int']['output']>;
 };
@@ -697,6 +715,7 @@ export type Users_Min_Fields = {
   comment?: Maybe<Scalars['String']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   name?: Maybe<Scalars['String']['output']>;
+  test_date?: Maybe<Scalars['date']['output']>;
   user_id?: Maybe<Scalars['uuid']['output']>;
   version?: Maybe<Scalars['Int']['output']>;
 };
@@ -731,6 +750,7 @@ export type Users_Order_By = {
   is_active?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
   posts_aggregate?: InputMaybe<Posts_Aggregate_Order_By>;
+  test_date?: InputMaybe<Order_By>;
   user_id?: InputMaybe<Order_By>;
   version?: InputMaybe<Order_By>;
 };
@@ -751,6 +771,8 @@ export enum Users_Select_Column {
   /** column name */
   Name = 'name',
   /** column name */
+  TestDate = 'test_date',
+  /** column name */
   UserId = 'user_id',
   /** column name */
   Version = 'version'
@@ -762,6 +784,7 @@ export type Users_Set_Input = {
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
   is_active?: InputMaybe<Scalars['Boolean']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
+  test_date?: InputMaybe<Scalars['date']['input']>;
   user_id?: InputMaybe<Scalars['uuid']['input']>;
   version?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -798,6 +821,7 @@ export type Users_Stream_Cursor_Value_Input = {
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
   is_active?: InputMaybe<Scalars['Boolean']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
+  test_date?: InputMaybe<Scalars['date']['input']>;
   user_id?: InputMaybe<Scalars['uuid']['input']>;
   version?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -818,6 +842,8 @@ export enum Users_Update_Column {
   IsActive = 'is_active',
   /** column name */
   Name = 'name',
+  /** column name */
+  TestDate = 'test_date',
   /** column name */
   UserId = 'user_id',
   /** column name */
@@ -869,7 +895,7 @@ export type GetUsersQueryVariables = Exact<{
 }>;
 
 
-export type GetUsersQuery = { __typename?: 'query_root', users: Array<{ __typename?: 'users', name: string, is_active: boolean, user_id: any, version: number, comment?: string | null, posts: Array<{ __typename?: 'posts', post_id: any }> }> };
+export type GetUsersQuery = { __typename?: 'query_root', users: Array<{ __typename?: 'users', name: string, is_active: boolean, user_id: any, version: number, comment?: string | null, created_at: any, test_date?: any | null, posts: Array<{ __typename?: 'posts', post_id: any }> }> };
 
 
-export const GetUsersDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"getUsers"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"usersWhere"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"users_bool_exp"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"where"},"value":{"kind":"Variable","name":{"kind":"Name","value":"usersWhere"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"is_active"}},{"kind":"Field","name":{"kind":"Name","value":"user_id"}},{"kind":"Field","name":{"kind":"Name","value":"version"}},{"kind":"Field","name":{"kind":"Name","value":"comment"}},{"kind":"Field","name":{"kind":"Name","value":"posts"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"post_id"}}]}}]}}]}}]} as unknown as DocumentNode<GetUsersQuery, GetUsersQueryVariables>;
+export const GetUsersDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"getUsers"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"usersWhere"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"users_bool_exp"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"where"},"value":{"kind":"Variable","name":{"kind":"Name","value":"usersWhere"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"is_active"}},{"kind":"Field","name":{"kind":"Name","value":"user_id"}},{"kind":"Field","name":{"kind":"Name","value":"version"}},{"kind":"Field","name":{"kind":"Name","value":"comment"}},{"kind":"Field","name":{"kind":"Name","value":"created_at"}},{"kind":"Field","name":{"kind":"Name","value":"test_date"}},{"kind":"Field","name":{"kind":"Name","value":"posts"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"post_id"}}]}}]}}]}}]} as unknown as DocumentNode<GetUsersQuery, GetUsersQueryVariables>;
