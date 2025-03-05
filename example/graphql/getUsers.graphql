@@ -5,6 +5,8 @@ query getUsers($usersWhere: users_bool_exp) {
     user_id
     version
     comment
+    created_at
+    test_date
     posts {
       post_id
     }

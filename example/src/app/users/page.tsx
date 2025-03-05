@@ -18,7 +18,7 @@ const UsersPage: React.FC = () => {
     <div>
       <h1>Users</h1>
       <ul>
-        <table>
+        <table style={{ overflowX: 'auto' }}>
           <thead>
             <tr>
               <th>User ID</th>
@@ -26,6 +26,8 @@ const UsersPage: React.FC = () => {
               <th>Is Active</th>
               <th>Version</th>
               <th>Comment</th>
+              <th>Created At</th>
+              <th>Test Date</th>
               <th>Posts</th>
             </tr>
           </thead>
@@ -37,6 +39,8 @@ const UsersPage: React.FC = () => {
                 <td>{user.is_active.toString()}</td>
                 <td>{user.version}</td>
                 <td>{user.comment ?? '-'}</td>
+                <td>{user.created_at}</td>
+                <td>{user.test_date ?? '-'}</td>
                 <td>{user.posts.map((p) => p.post_id).join(', ')}</td>
               </tr>
             ))}

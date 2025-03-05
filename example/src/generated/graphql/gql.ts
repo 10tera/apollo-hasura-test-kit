@@ -14,10 +14,10 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
 type Documents = {
-    "query getUsers($usersWhere: users_bool_exp) {\n  users(where: $usersWhere) {\n    name\n    is_active\n    user_id\n    version\n    comment\n    posts {\n      post_id\n    }\n  }\n}": typeof types.GetUsersDocument,
+    "query getUsers($usersWhere: users_bool_exp) {\n  users(where: $usersWhere) {\n    name\n    is_active\n    user_id\n    version\n    comment\n    created_at\n    test_date\n    posts {\n      post_id\n    }\n  }\n}": typeof types.GetUsersDocument,
 };
 const documents: Documents = {
-    "query getUsers($usersWhere: users_bool_exp) {\n  users(where: $usersWhere) {\n    name\n    is_active\n    user_id\n    version\n    comment\n    posts {\n      post_id\n    }\n  }\n}": types.GetUsersDocument,
+    "query getUsers($usersWhere: users_bool_exp) {\n  users(where: $usersWhere) {\n    name\n    is_active\n    user_id\n    version\n    comment\n    created_at\n    test_date\n    posts {\n      post_id\n    }\n  }\n}": types.GetUsersDocument,
 };
 
 /**
@@ -37,7 +37,7 @@ export function gql(source: string): unknown;
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "query getUsers($usersWhere: users_bool_exp) {\n  users(where: $usersWhere) {\n    name\n    is_active\n    user_id\n    version\n    comment\n    posts {\n      post_id\n    }\n  }\n}"): (typeof documents)["query getUsers($usersWhere: users_bool_exp) {\n  users(where: $usersWhere) {\n    name\n    is_active\n    user_id\n    version\n    comment\n    posts {\n      post_id\n    }\n  }\n}"];
+export function gql(source: "query getUsers($usersWhere: users_bool_exp) {\n  users(where: $usersWhere) {\n    name\n    is_active\n    user_id\n    version\n    comment\n    created_at\n    test_date\n    posts {\n      post_id\n    }\n  }\n}"): (typeof documents)["query getUsers($usersWhere: users_bool_exp) {\n  users(where: $usersWhere) {\n    name\n    is_active\n    user_id\n    version\n    comment\n    created_at\n    test_date\n    posts {\n      post_id\n    }\n  }\n}"];
 
 export function gql(source: string) {
   return (documents as any)[source] ?? {};
