@@ -1,3 +1,5 @@
+import { type Result, createFailure, createSuccess } from './utils/result';
+
 export const mockQueryResult = <
   TData,
   TVariables extends Record<string, Where | number | undefined | null>,
@@ -18,29 +20,33 @@ export const mockQueryResult = <
       }[keyof TVariables];
     };
   },
-): TData => {
-  const result = structuredClone(data);
-  for (const [key, value] of objectEntries(map)) {
-    if (!isNullish(value.where)) {
-      const whereValue = variables[value.where];
-      if (
-        typeof whereValue === 'object' &&
-        !isNullish(whereValue) &&
-        Array.isArray(data[key])
-      ) {
-        const filteredData = data[key].filter((item) => {
-          return matchCondition(whereValue, item);
-          //TODO: fix type
-        }) as TData[keyof TData];
-        result[key] = filteredData;
+): Result<TData, Error> => {
+  try {
+    const result = structuredClone(data);
+    for (const [key, value] of objectEntries(map)) {
+      if (!isNullish(value.where)) {
+        const whereValue = variables[value.where];
+        if (
+          typeof whereValue === 'object' &&
+          !isNullish(whereValue) &&
+          Array.isArray(data[key])
+        ) {
+          const filteredData = data[key].filter((item) => {
+            return matchCondition(whereValue, item);
+            //TODO: fix type
+          }) as TData[keyof TData];
+          result[key] = filteredData;
+        }
+      }
+      if (!isNullish(value.limit)) {
+        //console.log(variables[value.limit]);
       }
     }
-    if (!isNullish(value.limit)) {
-      //console.log(variables[value.limit]);
-    }
-  }
 
-  return result;
+    return createSuccess(result);
+  } catch (error) {
+    return createFailure(error as Error);
+  }
 };
 
 type Where = {
@@ -165,14 +171,18 @@ const compareData = (condition: Comparator, data: unknown): boolean => {
   /**
    * _eq
    */
-  if (condition._eq !== undefined) {
+  if (!isNullish(condition._eq)) {
     result = result && data === condition._eq;
+  } else if (condition._eq === null) {
+    throw new Error("unexpected null value for type 'String'");
   }
   /**
    * _neq
    */
-  if (condition._neq !== undefined) {
+  if (!isNullish(condition._neq)) {
     result = result && (isNullish(data) ? false : data !== condition._neq);
+  } else if (condition._eq === null) {
+    throw new Error("unexpected null value for type 'String'");
   }
   /**
    * _in
@@ -192,12 +202,17 @@ const compareData = (condition: Comparator, data: unknown): boolean => {
       result &&
       (typeof data === 'boolean' ? condition._in.includes(data) : false);
   }
+  if (condition._in === null) {
+    throw new Error('expected a list, but found null');
+  }
   /**
    * _is_null
    */
   if (!isNullish(condition._is_null)) {
     result =
       result && (condition._is_null ? isNullish(data) : !isNullish(data));
+  } else if (condition._is_null === null) {
+    throw new Error("expected a boolean for type 'Boolean', but found null");
   }
   /**
    * _regex
@@ -206,6 +221,8 @@ const compareData = (condition: Comparator, data: unknown): boolean => {
     result =
       result &&
       (typeof data === 'string' ? !!data.match(condition._regex) : false);
+  } else if (condition._regex === null) {
+    throw new Error("unexpected null value for type 'String'");
   }
   return result;
 };

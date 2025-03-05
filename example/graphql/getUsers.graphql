@@ -4,6 +4,7 @@ query getUsers($usersWhere: users_bool_exp) {
     is_active
     user_id
     version
+    comment
     posts {
       post_id
     }

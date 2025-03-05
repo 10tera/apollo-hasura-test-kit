@@ -27,8 +27,9 @@ const mock = {
         {
           name: 'user1',
           is_active: true,
-          user_id: null,
+          user_id: 'user_1',
           version: 1,
+          comment: 'comment1',
           posts: [
             {
               post_id: 'post_1',
@@ -43,6 +44,7 @@ const mock = {
           is_active: true,
           user_id: 'user_2',
           version: 1,
+          comment: null,
           posts: [
             {
               post_id: 'post_1',
@@ -54,6 +56,7 @@ const mock = {
           is_active: false,
           user_id: 'user_3',
           version: 2,
+          comment: 'comment3',
           posts: [
             {
               post_id: 'post_1',
@@ -63,17 +66,19 @@ const mock = {
       ],
     };
 
-    return {
-      data: mockQueryResult<GetUsersQuery, GetUsersQueryVariables>(
-        data,
-        variables,
-        {
-          users: {
-            where: 'usersWhere',
-          },
+    const result = mockQueryResult<GetUsersQuery, GetUsersQueryVariables>(
+      data,
+      variables,
+      {
+        users: {
+          where: 'usersWhere',
         },
-      ),
-    };
+      },
+    );
+    if (result.isSuccess) {
+      return { data: result.value };
+    }
+    return { errors: [result.value] };
   },
   // newData: (variables) =>
 } satisfies MockedResponse<GetUsersQuery>;
