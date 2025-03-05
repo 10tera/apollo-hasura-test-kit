@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon';
 import { type Result, createFailure, createSuccess } from './utils/result';
 
 export const mockQueryResult = <
@@ -62,6 +63,10 @@ type Comparator = {
   _is_null?: boolean | null;
   _regex?: string | null;
   _neq?: string | number | boolean | null;
+  _gte?: string | number | null;
+  _gt?: string | number | null;
+  _lte?: string | number | null;
+  _lt?: string | number | null;
   [k: string]:
     | string[]
     | string
@@ -91,7 +96,11 @@ const isComparator = (value: unknown): value is Comparator => {
       key === '_in' ||
       key === '_is_null' ||
       key === '_regex' ||
-      key === '_neq',
+      key === '_neq' ||
+      key === '_gte' ||
+      key === '_gt' ||
+      key === '_lte' ||
+      key === '_lt',
   );
 };
 const isStringArray = (value: unknown): value is string[] => {
@@ -171,11 +180,7 @@ const compareData = (condition: Comparator, data: unknown): boolean => {
   /**
    * _eq
    */
-  if (!isNullish(condition._eq)) {
-    result = result && data === condition._eq;
-  } else if (condition._eq === null) {
-    throw new Error("unexpected null value for type 'String'");
-  }
+  result = result && compareEqCondition(condition._eq, data);
   /**
    * _neq
    */
@@ -187,24 +192,7 @@ const compareData = (condition: Comparator, data: unknown): boolean => {
   /**
    * _in
    */
-  if (isStringArray(condition._in)) {
-    result =
-      result &&
-      (typeof data === 'string' ? condition._in.includes(data) : false);
-  }
-  if (isNumberArray(condition._in)) {
-    result =
-      result &&
-      (typeof data === 'number' ? condition._in.includes(data) : false);
-  }
-  if (isBooleanArray(condition._in)) {
-    result =
-      result &&
-      (typeof data === 'boolean' ? condition._in.includes(data) : false);
-  }
-  if (condition._in === null) {
-    throw new Error('expected a list, but found null');
-  }
+  result = result && compareInCondition(condition._in, data);
   /**
    * _is_null
    */
@@ -224,7 +212,243 @@ const compareData = (condition: Comparator, data: unknown): boolean => {
   } else if (condition._regex === null) {
     throw new Error("unexpected null value for type 'String'");
   }
+  /**
+   * _gte,_gt,_lte,_lt
+   */
+  result = result && compareGteCondition(condition._gte, data);
+  result = result && compareGtCondition(condition._gt, data);
+  result = result && compareLteCondition(condition._lte, data);
+  result = result && compareLtCondition(condition._lt, data);
   return result;
+};
+
+const compareEqCondition = (
+  condition: Comparator['_eq'],
+  data: unknown,
+): boolean => {
+  if (condition === null)
+    throw new Error("unexpected null value for type 'String'");
+  if (condition === undefined) return true;
+
+  // yyyy-MM-ddの等価判定
+  if (typeof condition === 'string' && typeof data === 'string') {
+    const dateFormat = 'yyyy-M-d';
+    const conditionDate = DateTime.fromFormat(condition, dateFormat);
+    const dataDate = DateTime.fromFormat(data, dateFormat);
+    if (conditionDate.isValid && dataDate.isValid) {
+      return conditionDate.equals(dataDate);
+    }
+  }
+
+  // timestampの等価判定
+  if (typeof condition === 'string' && typeof data === 'string') {
+    const conditionDate = DateTime.fromISO(condition);
+    const dataDate = DateTime.fromISO(data);
+    //TODO: より適切なバリデーションを入れる
+    if (conditionDate.isValid && dataDate.isValid) {
+      console.log(conditionDate, dataDate);
+      return conditionDate.equals(dataDate);
+    }
+  }
+
+  return data === condition;
+};
+
+const compareInCondition = (
+  condition: Comparator['_in'],
+  data: unknown,
+): boolean => {
+  if (condition === null) throw new Error('expected a list, but found null');
+  if (condition === undefined) return true;
+  if (isNumberArray(condition)) {
+    return typeof data === 'number' ? condition.includes(data) : false;
+  }
+  if (isBooleanArray(condition)) {
+    return typeof data === 'boolean' ? condition.includes(data) : false;
+  }
+  if (isStringArray(condition)) {
+    if (typeof data !== 'string') return false;
+    // yyyy-MM-ddの判定
+    const dateFormat = 'yyyy-M-d';
+    const validYmdDates = condition
+      .map((dateStr) => DateTime.fromFormat(dateStr, dateFormat))
+      .filter((date) => date.isValid);
+    if (validYmdDates.length === condition.length) {
+      const dataDate = DateTime.fromFormat(data as string, dateFormat);
+      if (dataDate.isValid) {
+        return validYmdDates.some((date) => date.equals(dataDate));
+      }
+    }
+
+    // timestampの等価判定
+    const validTimestampDates = condition
+      .map((dateStr) => DateTime.fromISO(dateStr))
+      .filter((date) => date.isValid);
+    if (validTimestampDates.length === condition.length) {
+      const dataDate = DateTime.fromISO(data as string);
+      if (dataDate.isValid) {
+        return validTimestampDates.some((date) => date.equals(dataDate));
+      }
+    }
+    return condition.includes(data);
+  }
+  return true;
+};
+
+const compareGteCondition = (
+  condition: Comparator['_gte'],
+  data: unknown,
+): boolean => {
+  if (condition === null)
+    throw new Error("unexpected null value for type 'String'");
+  if (condition === undefined) return true;
+  if (isNullish(data)) return false;
+
+  // yyyy-MM-ddの等価判定
+  if (typeof condition === 'string' && typeof data === 'string') {
+    const dateFormat = 'yyyy-M-d';
+    const conditionDate = DateTime.fromFormat(condition, dateFormat);
+    const dataDate = DateTime.fromFormat(data, dateFormat);
+    if (conditionDate.isValid && dataDate.isValid) {
+      return dataDate >= conditionDate;
+    }
+  }
+
+  // timestampの等価判定
+  if (typeof condition === 'string' && typeof data === 'string') {
+    const conditionDate = DateTime.fromISO(condition);
+    const dataDate = DateTime.fromISO(data);
+    //TODO: より適切なバリデーションを入れる
+    if (conditionDate.isValid && dataDate.isValid) {
+      return dataDate >= conditionDate;
+    }
+  }
+
+  if (typeof data === 'string' && typeof condition === 'string') {
+    return data >= condition;
+  }
+  if (typeof data === 'number' && typeof condition === 'number') {
+    return data >= condition;
+  }
+
+  return true;
+};
+
+const compareGtCondition = (
+  condition: Comparator['_gt'],
+  data: unknown,
+): boolean => {
+  if (condition === null)
+    throw new Error("unexpected null value for type 'String'");
+  if (condition === undefined) return true;
+  if (isNullish(data)) return false;
+
+  // yyyy-MM-ddの等価判定
+  if (typeof condition === 'string' && typeof data === 'string') {
+    const dateFormat = 'yyyy-M-d';
+    const conditionDate = DateTime.fromFormat(condition, dateFormat);
+    const dataDate = DateTime.fromFormat(data, dateFormat);
+    if (conditionDate.isValid && dataDate.isValid) {
+      return dataDate > conditionDate;
+    }
+  }
+
+  // timestampの等価判定
+  if (typeof condition === 'string' && typeof data === 'string') {
+    const conditionDate = DateTime.fromISO(condition);
+    const dataDate = DateTime.fromISO(data);
+    //TODO: より適切なバリデーションを入れる
+    if (conditionDate.isValid && dataDate.isValid) {
+      return dataDate > conditionDate;
+    }
+  }
+
+  if (typeof data === 'string' && typeof condition === 'string') {
+    return data > condition;
+  }
+  if (typeof data === 'number' && typeof condition === 'number') {
+    return data > condition;
+  }
+
+  return true;
+};
+
+const compareLteCondition = (
+  condition: Comparator['_lte'],
+  data: unknown,
+): boolean => {
+  if (condition === null)
+    throw new Error("unexpected null value for type 'String'");
+  if (condition === undefined) return true;
+  if (isNullish(data)) return false;
+
+  // yyyy-MM-ddの等価判定
+  if (typeof condition === 'string' && typeof data === 'string') {
+    const dateFormat = 'yyyy-M-d';
+    const conditionDate = DateTime.fromFormat(condition, dateFormat);
+    const dataDate = DateTime.fromFormat(data, dateFormat);
+    if (conditionDate.isValid && dataDate.isValid) {
+      return dataDate <= conditionDate;
+    }
+  }
+
+  // timestampの等価判定
+  if (typeof condition === 'string' && typeof data === 'string') {
+    const conditionDate = DateTime.fromISO(condition);
+    const dataDate = DateTime.fromISO(data);
+    //TODO: より適切なバリデーションを入れる
+    if (conditionDate.isValid && dataDate.isValid) {
+      return dataDate <= conditionDate;
+    }
+  }
+
+  if (typeof data === 'string' && typeof condition === 'string') {
+    return data <= condition;
+  }
+  if (typeof data === 'number' && typeof condition === 'number') {
+    return data <= condition;
+  }
+
+  return true;
+};
+
+const compareLtCondition = (
+  condition: Comparator['_lt'],
+  data: unknown,
+): boolean => {
+  if (condition === null)
+    throw new Error("unexpected null value for type 'String'");
+  if (condition === undefined) return true;
+  if (isNullish(data)) return false;
+
+  // yyyy-MM-ddの等価判定
+  if (typeof condition === 'string' && typeof data === 'string') {
+    const dateFormat = 'yyyy-M-d';
+    const conditionDate = DateTime.fromFormat(condition, dateFormat);
+    const dataDate = DateTime.fromFormat(data, dateFormat);
+    if (conditionDate.isValid && dataDate.isValid) {
+      return dataDate < conditionDate;
+    }
+  }
+
+  // timestampの等価判定
+  if (typeof condition === 'string' && typeof data === 'string') {
+    const conditionDate = DateTime.fromISO(condition);
+    const dataDate = DateTime.fromISO(data);
+    //TODO: より適切なバリデーションを入れる
+    if (conditionDate.isValid && dataDate.isValid) {
+      return dataDate < conditionDate;
+    }
+  }
+
+  if (typeof data === 'string' && typeof condition === 'string') {
+    return data < condition;
+  }
+  if (typeof data === 'number' && typeof condition === 'number') {
+    return data < condition;
+  }
+
+  return true;
 };
 
 const objectEntries = <K extends PropertyKey, V>(obj: { [P in K]: V }) =>
