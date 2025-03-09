@@ -1,5 +1,16 @@
 import { DateTime } from 'luxon';
+import type { Comparator } from './types/comparator';
+import type { Where } from './types/where';
 import { type Result, createFailure, createSuccess } from './utils/result';
+import {
+  isBooleanArray,
+  isNumberArray,
+  isStringArray,
+} from './utils/typeGuard/isArray';
+import { isComparator } from './utils/typeGuard/isComparator';
+import { isNullish } from './utils/typeGuard/isNullish';
+import { isRecordStringUnknown } from './utils/typeGuard/isRecord';
+import { objectEntries } from './utils/typeGuard/objectEntries';
 
 export const mockQueryResult = <
   TData,
@@ -48,82 +59,6 @@ export const mockQueryResult = <
   } catch (error) {
     return createFailure(error as Error);
   }
-};
-
-type Where = {
-  _and?: Where[] | null;
-  _or?: Where[] | null;
-  _not?: Where | null;
-  [k: string]: Where[] | Where | Comparator | Aggregate | null | undefined;
-};
-
-type Comparator = {
-  _eq?: string | number | boolean | null;
-  _in?: string[] | number[] | boolean[] | null;
-  _is_null?: boolean | null;
-  _regex?: string | null;
-  _neq?: string | number | boolean | null;
-  _gte?: string | number | null;
-  _gt?: string | number | null;
-  _lte?: string | number | null;
-  _lt?: string | number | null;
-  [k: string]:
-    | string[]
-    | string
-    | number[]
-    | number
-    | boolean[]
-    | boolean
-    | null
-    | undefined;
-};
-
-/**
- * For aggregate type
- */
-type Aggregate = {
-  [k: string]: Where | Comparator | boolean | null | undefined | unknown;
-};
-
-const isComparator = (value: unknown): value is Comparator => {
-  if (typeof value !== 'object' || value === null || Array.isArray(value))
-    return false;
-  const keys = Object.keys(value);
-  if (keys.length === 0) return false;
-  return keys.every(
-    (key) =>
-      key === '_eq' ||
-      key === '_in' ||
-      key === '_is_null' ||
-      key === '_regex' ||
-      key === '_neq' ||
-      key === '_gte' ||
-      key === '_gt' ||
-      key === '_lte' ||
-      key === '_lt',
-  );
-};
-const isStringArray = (value: unknown): value is string[] => {
-  return Array.isArray(value) && value.every((v) => typeof v === 'string');
-};
-
-const isNumberArray = (value: unknown): value is number[] => {
-  return Array.isArray(value) && value.every((v) => typeof v === 'number');
-};
-
-const isBooleanArray = (value: unknown): value is boolean[] => {
-  return Array.isArray(value) && value.every((v) => typeof v === 'boolean');
-};
-
-const isRecordStringUnknown = (
-  value: unknown,
-): value is Record<string, unknown> => {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value) &&
-    Object.keys(value).every((key) => typeof key === 'string')
-  );
 };
 
 const matchCondition = (
@@ -450,8 +385,3 @@ const compareLtCondition = (
 
   return true;
 };
-
-const objectEntries = <K extends PropertyKey, V>(obj: { [P in K]: V }) =>
-  Object.entries(obj) as [K, V][];
-
-const isNullish = (value: unknown) => value === null || value === undefined;
